@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LONDORA — Suppression de compte</title>
+<style>
+  :root{ --green:#1b3a2b; --gold:#c9a84c; --text:#2b2b28; --gray:#6b6b64; --bg:#faf7f0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+  header{background:var(--green);padding:36px 24px;text-align:center;}
+  header h1{color:var(--gold);font-size:22px;letter-spacing:6px;margin:0 0 6px;font-weight:600;}
+  header p{color:#e8dfc8;font-size:13px;margin:0;opacity:.85;}
+  .langs{display:flex;justify-content:center;gap:8px;padding:18px 16px 0;}
+  .langs button{border:1px solid var(--gold);background:transparent;color:var(--green);padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;}
+  .langs button.active{background:var(--gold);color:var(--green);}
+  main{max-width:640px;margin:0 auto;padding:24px 24px 60px;}
+  h2{font-size:17px;color:var(--green);margin-top:28px;}
+  p{font-size:14.5px;}
+  ul{font-size:14.5px;padding-left:20px;}
+  .btn{display:inline-block;margin-top:10px;background:var(--gold);color:var(--green);text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;}
+  .lang-block{display:none;}
+  .lang-block.active{display:block;}
+</style>
+</head>
+<body>
+<header>
+  <h1>LONDORA</h1>
+  <p id="subtitle">Suppression de compte</p>
+</header>
+<div class="langs">
+  <button data-lang="fr" class="active">Français</button>
+  <button data-lang="en">English</button>
+  <button data-lang="es">Español</button>
+</div>
+<main>
+
+<div class="lang-block active" data-lang="fr">
+<h2>Depuis l'application (recommandé, immédiat)</h2>
+<p>Ouvrez LONDORA → Compte → « Supprimer mon compte », tout en bas du menu. La suppression est immédiate et irréversible.</p>
+<h2>Ce qui est supprimé</h2>
+<ul>
+  <li>Votre compte (prénom, e-mail) chez notre hébergeur, situé dans l'Union européenne</li>
+  <li>Votre sauvegarde cloud éventuelle (si activée)</li>
+  <li>Toutes les données sur l'appareil où vous supprimez le compte (transactions, comptes, catégories)</li>
+</ul>
+<h2>Sans accès à l'app</h2>
+<p>Si vous ne pouvez plus ouvrir l'application, envoyez une demande de suppression à l'adresse ci-dessous, depuis l'e-mail associé à votre compte LONDORA. Le traitement se fait sous quelques jours ouvrés.</p>
+<a class="btn" href="mailto:support.londora@gmail.com?subject=Suppression%20de%20compte%20LONDORA">Demander la suppression par e-mail</a>
+</div>
+
+<div class="lang-block" data-lang="en">
+<h2>From the app (recommended, instant)</h2>
+<p>Open LONDORA → Account → "Delete my account", at the bottom of the menu. Deletion is immediate and irreversible.</p>
+<h2>What gets deleted</h2>
+<ul>
+  <li>Your account (first name, email) with our host, located in the European Union</li>
+  <li>Any cloud backup you may have enabled</li>
+  <li>All data on the device where you delete the account (transactions, accounts, categories)</li>
+</ul>
+<h2>Without access to the app</h2>
+<p>If you can no longer open the app, send a deletion request to the address below, from the email associated with your LONDORA account. This is processed within a few business days.</p>
+<a class="btn" href="mailto:support.londora@gmail.com?subject=LONDORA%20account%20deletion%20request">Request deletion by email</a>
+</div>
+
+<div class="lang-block" data-lang="es">
+<h2>Desde la app (recomendado, inmediato)</h2>
+<p>Abra LONDORA → Cuenta → "Eliminar mi cuenta", al final del menú. La eliminación es inmediata e irreversible.</p>
+<h2>Qué se elimina</h2>
+<ul>
+  <li>Su cuenta (nombre, correo electrónico) en nuestro proveedor, ubicado en la Unión Europea</li>
+  <li>Cualquier copia de seguridad en la nube que haya activado</li>
+  <li>Todos los datos en el dispositivo donde elimina la cuenta (transacciones, cuentas, categorías)</li>
+</ul>
+<h2>Sin acceso a la app</h2>
+<p>Si ya no puede abrir la aplicación, envíe una solicitud de eliminación a la dirección de abajo, desde el correo asociado a su cuenta LONDORA. Se procesa en unos días hábiles.</p>
+<a class="btn" href="mailto:support.londora@gmail.com?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta%20LONDORA">Solicitar eliminación por correo</a>
+</div>
+
+</main>
+<script>
+  var subtitles={fr:'Suppression de compte',en:'Account deletion',es:'Eliminación de cuenta'};
+  document.querySelectorAll('.langs button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var lang=btn.getAttribute('data-lang');
+      document.querySelectorAll('.langs button').forEach(function(b){b.classList.toggle('active',b===btn);});
+      document.querySelectorAll('.lang-block').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-lang')===lang);});
+      document.getElementById('subtitle').textContent=subtitles[lang];
+      document.documentElement.lang=lang;
+    });
+  });
+</script>
+</body>
+</html>
