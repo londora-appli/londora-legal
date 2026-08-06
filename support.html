@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LONDORA — Support</title>
+<style>
+  :root{ --green:#1b3a2b; --gold:#c9a84c; --text:#2b2b28; --gray:#6b6b64; --bg:#faf7f0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+  header{background:var(--green);padding:36px 24px;text-align:center;}
+  header h1{color:var(--gold);font-size:22px;letter-spacing:6px;margin:0 0 6px;font-weight:600;}
+  header p{color:#e8dfc8;font-size:13px;margin:0;opacity:.85;}
+  .langs{display:flex;justify-content:center;gap:8px;padding:18px 16px 0;}
+  .langs button{border:1px solid var(--gold);background:transparent;color:var(--green);padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;}
+  .langs button.active{background:var(--gold);color:var(--green);}
+  main{max-width:640px;margin:0 auto;padding:24px 24px 60px;}
+  h2{font-size:16px;color:var(--green);margin-top:28px;}
+  p{font-size:14.5px;}
+  ul{font-size:14.5px;padding-left:20px;}
+  .btn{display:inline-block;margin-top:10px;background:var(--gold);color:var(--green);text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;}
+  .lang-block{display:none;}
+  .lang-block.active{display:block;}
+  a{color:var(--green);}
+</style>
+</head>
+<body>
+<header>
+  <h1>LONDORA</h1>
+  <p id="subtitle">Support</p>
+</header>
+<div class="langs">
+  <button data-lang="fr" class="active">Français</button>
+  <button data-lang="en">English</button>
+  <button data-lang="es">Español</button>
+</div>
+<main>
+
+<div class="lang-block active" data-lang="fr">
+<h2>Une question, un problème ?</h2>
+<p>Écrivez-nous directement, nous répondons sous quelques jours ouvrés.</p>
+<a class="btn" href="mailto:support.londora@gmail.com">support.londora@gmail.com</a>
+<h2>Questions fréquentes</h2>
+<p><strong>Je ne reçois pas le code de connexion par e-mail.</strong><br>Vérifiez vos courriers indésirables/spam. Si le problème persiste après quelques minutes, contactez-nous.</p>
+<p><strong>Comment supprimer mon compte ?</strong><br>Depuis l'app : Compte → Supprimer mon compte. Sans accès à l'app, voir <a href="account-deletion.html">cette page</a>.</p>
+<p><strong>Comment restaurer mon achat Premium ?</strong><br>Depuis l'écran de mise à niveau Premium, appuyez sur « Restaurer mes achats ».</p>
+<p><strong>Mes données sont-elles envoyées quelque part ?</strong><br>Non, sauf si vous activez volontairement la sauvegarde cloud (Premium). Voir notre <a href="privacy-policy.html">politique de confidentialité</a>.</p>
+</div>
+
+<div class="lang-block" data-lang="en">
+<h2>A question, an issue?</h2>
+<p>Write to us directly, we reply within a few business days.</p>
+<a class="btn" href="mailto:support.londora@gmail.com">support.londora@gmail.com</a>
+<h2>Frequently asked questions</h2>
+<p><strong>I'm not receiving the sign-in code by email.</strong><br>Check your spam/junk folder. If the issue persists after a few minutes, contact us.</p>
+<p><strong>How do I delete my account?</strong><br>From the app: Account → Delete my account. Without access to the app, see <a href="account-deletion.html">this page</a>.</p>
+<p><strong>How do I restore my Premium purchase?</strong><br>From the Premium upgrade screen, tap "Restore purchases".</p>
+<p><strong>Is my data sent anywhere?</strong><br>No, unless you deliberately enable cloud backup (Premium). See our <a href="privacy-policy.html">privacy policy</a>.</p>
+</div>
+
+<div class="lang-block" data-lang="es">
+<h2>¿Una pregunta, un problema?</h2>
+<p>Escríbanos directamente, respondemos en unos días hábiles.</p>
+<a class="btn" href="mailto:support.londora@gmail.com">support.londora@gmail.com</a>
+<h2>Preguntas frecuentes</h2>
+<p><strong>No recibo el código de inicio de sesión por correo.</strong><br>Revise su carpeta de spam. Si el problema persiste después de unos minutos, contáctenos.</p>
+<p><strong>¿Cómo elimino mi cuenta?</strong><br>Desde la app: Cuenta → Eliminar mi cuenta. Sin acceso a la app, vea <a href="account-deletion.html">esta página</a>.</p>
+<p><strong>¿Cómo restauro mi compra Premium?</strong><br>Desde la pantalla de mejora Premium, pulse "Restaurar mis compras".</p>
+<p><strong>¿Se envían mis datos a algún lado?</strong><br>No, a menos que active voluntariamente la copia de seguridad en la nube (Premium). Vea nuestra <a href="privacy-policy.html">política de privacidad</a>.</p>
+</div>
+
+</main>
+<script>
+  var subtitles={fr:'Support',en:'Support',es:'Soporte'};
+  document.querySelectorAll('.langs button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var lang=btn.getAttribute('data-lang');
+      document.querySelectorAll('.langs button').forEach(function(b){b.classList.toggle('active',b===btn);});
+      document.querySelectorAll('.lang-block').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-lang')===lang);});
+      document.getElementById('subtitle').textContent=subtitles[lang];
+      document.documentElement.lang=lang;
+    });
+  });
+</script>
+</body>
+</html>
