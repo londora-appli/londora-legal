@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LONDORA — Assistance</title>
+<style>
+  :root{ --green:#1b3a2b; --gold:#c9a84c; --text:#2b2b28; --gray:#6b6b64; --bg:#faf7f0; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;}
+  header{background:var(--green);padding:36px 24px;text-align:center;}
+  header h1{color:var(--gold);font-size:22px;letter-spacing:6px;margin:0 0 6px;font-weight:600;}
+  header p{color:#e8dfc8;font-size:13px;margin:0;opacity:.85;}
+  .langs{display:flex;justify-content:center;gap:8px;padding:18px 16px 0;}
+  .langs button{border:1px solid var(--gold);background:transparent;color:var(--green);padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;}
+  .langs button.active{background:var(--gold);color:var(--green);}
+  main{max-width:520px;margin:0 auto;padding:40px 24px 70px;text-align:center;}
+  p{font-size:15px;color:var(--gray);}
+  .btn{display:inline-block;margin-top:18px;background:var(--gold);color:var(--green);text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:16px;}
+  .delay{font-size:13px;color:var(--gray);margin-top:14px;}
+  .lang-block{display:none;}
+  .lang-block.active{display:block;}
+  footer{text-align:center;padding:20px;font-size:12px;color:var(--gray);}
+  footer a{color:var(--gray);}
+</style>
+</head>
+<body>
+<header>
+  <h1>LONDORA</h1>
+  <p id="subtitle">Assistance</p>
+</header>
+<div class="langs">
+  <button data-lang="fr" class="active">Français</button>
+  <button data-lang="en">English</button>
+  <button data-lang="es">Español</button>
+</div>
+<main>
+
+<div class="lang-block active" data-lang="fr">
+<p>Une question, un problème avec l'application LONDORA ? Écrivez-nous directement, nous vous répondons sous quelques jours ouvrés.</p>
+<a class="btn" href="mailto:support@londora.fr">support@londora.fr</a>
+<p class="delay">Réponse habituelle sous 2 à 3 jours ouvrés.</p>
+</div>
+
+<div class="lang-block" data-lang="en">
+<p>A question or an issue with the LONDORA app? Write to us directly, we reply within a few business days.</p>
+<a class="btn" href="mailto:support@londora.fr">support@londora.fr</a>
+<p class="delay">Typical response time: 2 to 3 business days.</p>
+</div>
+
+<div class="lang-block" data-lang="es">
+<p>¿Una pregunta o un problema con la app LONDORA? Escríbanos directamente, respondemos en unos días hábiles.</p>
+<a class="btn" href="mailto:support@londora.fr">support@londora.fr</a>
+<p class="delay">Tiempo de respuesta habitual: 2 a 3 días hábiles.</p>
+</div>
+
+</main>
+<footer>
+  <a href="privacy-policy.html">Confidentialité</a> · <a href="terms-of-service.html">CGU</a>
+</footer>
+<script>
+  var subtitles={fr:'Assistance',en:'Support',es:'Soporte'};
+  document.querySelectorAll('.langs button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var lang=btn.getAttribute('data-lang');
+      document.querySelectorAll('.langs button').forEach(function(b){b.classList.toggle('active',b===btn);});
+      document.querySelectorAll('.lang-block').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-lang')===lang);});
+      document.getElementById('subtitle').textContent=subtitles[lang];
+      document.documentElement.lang=lang;
+    });
+  });
+</script>
+</body>
+</html>
