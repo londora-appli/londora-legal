@@ -16,7 +16,7 @@
     --card: #FFFFFF; --ink: #23101A; --muted: #6b5a60; --green: #2E8B57; --red: #C0392B; --line: rgba(74,20,32,.12);
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --cream: #140508; --card: #260D13; --ink: #F4EBDE; --muted: #c9b8ad; --line: rgba(240,228,210,.14); }
+    :root:not([data-theme="light"]) { --cream: #2B1219; --card: #3E1D26; --ink: #F4EBDE; --muted: #c9b8ad; --line: rgba(240,228,210,.14); }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--cream); color: var(--ink); font-family: Inter, -apple-system, system-ui, sans-serif; }
@@ -56,14 +56,21 @@
   canvas { width: 100%; height: 190px; background: #fff; border: 1px solid rgba(201,168,76,.6); border-radius: 14px; touch-action: none; display: block; }
   .dlg .actions { justify-content: flex-end; }
   .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .hero .wrap { position: relative; }
+  .refresh { position: absolute; top: 0; right: 0; appearance: none; border: 1px solid rgba(201,168,76,.5); background: transparent; color: var(--gold);
+             font: 600 13px Inter, system-ui, sans-serif; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+  .refresh:disabled { opacity: .5; cursor: default; }
+  .updated { font-size: 12px; opacity: .7; margin-top: 8px; }
 </style>
 </head>
 <body>
 <header class="hero">
   <div class="wrap">
+    <button class="refresh" id="refresh" type="button" aria-label="Actualiser les documents">↻ Actualiser</button>
     <div class="eyebrow">Espace client</div>
     <h1 id="business">Chargement…</h1>
     <p id="client"></p>
+    <div class="updated" id="updated"></div>
   </div>
 </header>
 <main class="wrap" id="content"></main>
@@ -131,7 +138,15 @@
   }
 
   let docs = [];
+  let loading = false;
   async function load() {
+    if (loading) return;
+    loading = true;
+    const btn = document.getElementById("refresh");
+    btn.disabled = true;
+    try { await fetchPortal(); } finally { loading = false; btn.disabled = false; }
+  }
+  async function fetchPortal() {
     if (!token) { showError("Lien incomplet. Utilisez le lien reçu de votre prestataire."); return; }
     try {
       const data = await rpc("get_portal", { p_token: token });
@@ -141,6 +156,8 @@
       document.title = `Espace client — ${data.business_name || "Londora Pro"}`;
       docs = data.documents || [];
       render();
+      document.getElementById("updated").textContent =
+        `Mis à jour à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
     } catch (e) {
       showError("Impossible de charger vos documents pour le moment. Réessayez dans quelques instants.");
     }
@@ -219,6 +236,13 @@
       btn.textContent = "Valider la signature"; updateConfirm();
     }
   });
+
+  // Actualisation : bouton, toutes les 60 s, et au retour sur l'onglet
+  // (sauf pendant une signature en cours).
+  document.getElementById("refresh").addEventListener("click", load);
+  const quietRefresh = () => { if (!dialog.open && document.visibilityState === "visible") load(); };
+  setInterval(quietRefresh, 60000);
+  document.addEventListener("visibilitychange", quietRefresh);
 
   load();
 </script>
