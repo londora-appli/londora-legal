@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Espace client — Londora Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Espace client Londora Pro — à publier sur support.londora.fr/portail.html.
+     Lit les documents via la fonction Supabase get_portal(jeton) et signe les
+     devis via sign_portal_quote(…) (supabase/client_portal.sql). */
+  :root {
+    --burgundy: #4A1420; --burgundy-dark: #330E16; --gold: #C9A84C; --cream: #F5F1EB;
+    --card: #FFFFFF; --ink: #23101A; --muted: #6b5a60; --green: #2E8B57; --red: #C0392B; --line: rgba(74,20,32,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --cream: #140508; --card: #260D13; --ink: #F4EBDE; --muted: #c9b8ad; --line: rgba(240,228,210,.14); }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cream); color: var(--ink); font-family: Inter, -apple-system, system-ui, sans-serif; }
+  .hero { background: linear-gradient(135deg, var(--burgundy), var(--burgundy-dark)); color: var(--gold); padding: 34px 16px 30px; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  .hero .wrap { padding: 0; }
+  h1 { font-family: "Playfair Display", Georgia, serif; font-weight: 600; font-size: 28px; margin: 6px 0 4px; }
+  .hero p { margin: 0; opacity: .85; font-size: 15px; }
+  .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+  main { padding: 22px 0 60px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.04); }
+  .row { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+  .kind { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  .num { font-weight: 600; font-size: 16px; margin-top: 2px; }
+  .title { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .amount { font-weight: 700; font-size: 20px; white-space: nowrap; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: rgba(201,168,76,.18); color: var(--burgundy); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge { color: var(--gold); } }
+  .badge.ok { background: rgba(46,139,87,.15); color: var(--green); }
+  .badge.late { background: rgba(192,57,43,.12); color: var(--red); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .btn { appearance: none; border: 0; cursor: pointer; font: 600 14px Inter, system-ui, sans-serif; padding: 10px 16px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn.primary { background: var(--burgundy); color: var(--gold); }
+  .btn.ghost { background: rgba(201,168,76,.16); color: var(--ink); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  h2 { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-weight: 500; font-size: 21px; margin: 22px 0 10px; }
+  .empty, .error { text-align: center; color: var(--muted); padding: 40px 10px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px 16px 40px; }
+  dialog { border: 0; border-radius: 20px; padding: 0; width: min(560px, calc(100vw - 32px)); background: var(--card); color: var(--ink); }
+  dialog::backdrop { background: rgba(20,5,8,.55); }
+  .dlg { padding: 20px; }
+  .dlg h3 { font-family: "Playfair Display", Georgia, serif; margin: 0 0 6px; font-size: 21px; }
+  label.field { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; }
+  input[type=text] { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); font: 15px Inter, system-ui; background: var(--cream); color: var(--ink); }
+  .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 14px; }
+  canvas { width: 100%; height: 190px; background: #fff; border: 1px solid rgba(201,168,76,.6); border-radius: 14px; touch-action: none; display: block; }
+  .dlg .actions { justify-content: flex-end; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Espace client</div>
+    <h1 id="business">Chargement…</h1>
+    <p id="client"></p>
+  </div>
+</header>
+<main class="wrap" id="content"></main>
+<footer>Espace sécurisé · Généré avec Londora Pro</footer>
+
+<dialog id="signDialog">
+  <form class="dlg" method="dialog" id="signForm">
+    <h3>Signer le devis</h3>
+    <div class="meta" id="signSummary"></div>
+    <label class="field" for="signer">Nom du signataire</label>
+    <input type="text" id="signer" autocomplete="name" required>
+    <label class="check"><input type="checkbox" id="agree"> <span>Bon pour accord : j'accepte ce devis, son montant et ses conditions.</span></label>
+    <label class="field">Signature</label>
+    <canvas id="pad"></canvas>
+    <div class="note">Signez avec le doigt ou la souris. <a href="#" id="clearPad">Effacer</a></div>
+    <div class="note" id="signError" style="color:var(--red)"></div>
+    <div class="actions">
+      <button class="btn ghost" value="cancel" type="button" id="cancelSign">Annuler</button>
+      <button class="btn primary" type="submit" id="confirmSign" disabled>Valider la signature</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  // ⚠️ Mêmes valeurs que LondoraPro/Utilities/SupabaseConfig.swift (projet Supabase de l'app).
+  const SUPABASE_URL = "https://pddevkamxjvnylurqqjo.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_FCJHQem6nVkO13VX6l5qrg_Iv6jv-og";
+
+  const token = new URLSearchParams(location.search).get("t") || "";
+  const content = document.getElementById("content");
+  const euro = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+  const date = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const kinds = { devis: "Devis", facture: "Facture", prefacture: "Préfacture", avoir: "Avoir" };
+  const statuses = { brouillon: "Brouillon", envoye: "En attente de votre accord", accepte: "Accepté", refuse: "Refusé",
+                     emise: "À régler", payee: "Payée", annulee: "Annulée", valide: "Validé" };
+
+  async function rpc(name, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  function badge(doc) {
+    const label = doc.signed_at ? `Signé le ${date(doc.signed_at)}` : (statuses[doc.status] || doc.status || "");
+    const cls = doc.signed_at || ["accepte", "payee", "valide"].includes(doc.status) ? "ok" : (doc.status === "emise" ? "late" : "");
+    return label ? `<span class="badge ${cls}">${esc(label)}</span>` : "";
+  }
+
+  function card(doc) {
+    const actions = [];
+    if (doc.pdf_path) actions.push(`<a class="btn ghost" href="${esc(doc.pdf_path)}" target="_blank" rel="noopener">Voir le PDF</a>`);
+    if (doc.payment_url && doc.status === "emise") actions.push(`<a class="btn primary" href="${esc(doc.payment_url)}" target="_blank" rel="noopener">Payer en ligne</a>`);
+    if (doc.kind === "devis" && doc.can_sign && !doc.signed_at) actions.push(`<button class="btn primary" data-sign="${esc(doc.id)}">Signer le devis</button>`);
+    return `<div class="card"><div class="row">
+      <div><div class="kind">${esc(kinds[doc.kind] || doc.kind)}</div><div class="num">${esc(doc.number)}</div>
+      ${doc.title ? `<div class="title">${esc(doc.title)}</div>` : ""}<div class="meta">${date(doc.issue_date)} · ${badge(doc)}</div></div>
+      <div class="amount">${euro.format(Number(doc.total_ttc))}</div></div>
+      ${actions.length ? `<div class="actions">${actions.join("")}</div>` : ""}</div>`;
+  }
+
+  let docs = [];
+  async function load() {
+    if (!token) { showError("Lien incomplet. Utilisez le lien reçu de votre prestataire."); return; }
+    try {
+      const data = await rpc("get_portal", { p_token: token });
+      if (data.error) { showError("Ce lien n'est plus valide. Demandez un nouveau lien à votre prestataire."); return; }
+      document.getElementById("business").textContent = data.business_name || "Londora Pro";
+      document.getElementById("client").textContent = data.client_name ? `Documents de ${data.client_name}` : "";
+      document.title = `Espace client — ${data.business_name || "Londora Pro"}`;
+      docs = data.documents || [];
+      render();
+    } catch (e) {
+      showError("Impossible de charger vos documents pour le moment. Réessayez dans quelques instants.");
+    }
+  }
+
+  function render() {
+    if (!docs.length) { content.innerHTML = `<div class="empty">Aucun document pour l'instant.</div>`; return; }
+    const groups = [["Devis à signer", docs.filter((d) => d.kind === "devis" && d.can_sign && !d.signed_at)],
+                    ["Factures à régler", docs.filter((d) => d.kind === "facture" && d.status === "emise")],
+                    ["Tous vos documents", docs]];
+    content.innerHTML = groups.filter(([, list]) => list.length)
+      .map(([title, list]) => `<h2>${title}</h2>${list.map(card).join("")}`).join("");
+    content.querySelectorAll("[data-sign]").forEach((b) => b.addEventListener("click", () => openSign(b.dataset.sign)));
+  }
+
+  function showError(msg) {
+    document.getElementById("business").textContent = "Espace client";
+    content.innerHTML = `<div class="error">${esc(msg)}</div>`;
+  }
+
+  // ───── Signature ─────
+  const dialog = document.getElementById("signDialog");
+  const pad = document.getElementById("pad");
+  const ctx = pad.getContext("2d");
+  let drawing = false, hasInk = false, currentDoc = null;
+
+  function sizePad() {
+    const r = pad.getBoundingClientRect(), s = window.devicePixelRatio || 1;
+    pad.width = r.width * s; pad.height = r.height * s;
+    ctx.setTransform(s, 0, 0, s, 0, 0);
+    ctx.lineWidth = 2.6; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#141a4d";
+    hasInk = false; updateConfirm();
+  }
+  const pos = (e) => { const r = pad.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  pad.addEventListener("pointerdown", (e) => { drawing = true; pad.setPointerCapture(e.pointerId); const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  pad.addEventListener("pointermove", (e) => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); hasInk = true; updateConfirm(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((t) => pad.addEventListener(t, () => { drawing = false; }));
+  document.getElementById("clearPad").addEventListener("click", (e) => { e.preventDefault(); sizePad(); });
+  ["signer", "agree"].forEach((id) => document.getElementById(id).addEventListener("input", updateConfirm));
+
+  function updateConfirm() {
+    document.getElementById("confirmSign").disabled =
+      !(hasInk && document.getElementById("agree").checked && document.getElementById("signer").value.trim());
+  }
+
+  function openSign(id) {
+    currentDoc = docs.find((d) => d.id === id);
+    if (!currentDoc) return;
+    document.getElementById("signSummary").textContent = `Devis ${currentDoc.number} · ${euro.format(Number(currentDoc.total_ttc))}`;
+    document.getElementById("signError").textContent = "";
+    document.getElementById("agree").checked = false;
+    dialog.showModal();
+    requestAnimationFrame(sizePad);
+  }
+  document.getElementById("cancelSign").addEventListener("click", () => dialog.close());
+
+  document.getElementById("signForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("confirmSign");
+    btn.disabled = true; btn.textContent = "Envoi…";
+    try {
+      const png = pad.toDataURL("image/png").replace("data:image/png;base64,", "");
+      const result = await rpc("sign_portal_quote", {
+        p_token: token, p_document_id: currentDoc.id,
+        p_signer_name: document.getElementById("signer").value.trim(), p_signature_png: png,
+      });
+      if (result === "ok" || result === "already_signed") {
+        dialog.close();
+        await load();
+      } else {
+        document.getElementById("signError").textContent = "La signature n'a pas pu être enregistrée. Réessayez.";
+      }
+    } catch {
+      document.getElementById("signError").textContent = "Connexion impossible. Réessayez dans quelques instants.";
+    } finally {
+      btn.textContent = "Valider la signature"; updateConfirm();
+    }
+  });
+
+  load();
+</script>
+</body>
+</html>

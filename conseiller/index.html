@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Espace conseiller — Londora Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Espace conseiller Londora Pro — à publier sur support.londora.fr/conseiller/.
+     Connexion par code e-mail (Supabase Auth), puis lecture seule des données
+     des clients qui l'ont autorisé (supabase/advisor_space.sql). */
+  :root { --burgundy:#4A1420; --burgundy-dark:#330E16; --gold:#C9A84C; --cream:#F5F1EB; --card:#fff; --ink:#23101A;
+          --muted:#6b5a60; --green:#2E8B57; --red:#C0392B; --line:rgba(74,20,32,.12); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cream:#140508; --card:#260D13; --ink:#F4EBDE; --muted:#c9b8ad; --line:rgba(240,228,210,.14); } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink); font-family:Inter,-apple-system,system-ui,sans-serif; }
+  header { background:linear-gradient(135deg,var(--burgundy),var(--burgundy-dark)); color:var(--gold); padding:22px 16px; }
+  .wrap { max-width:980px; margin:0 auto; padding:0 16px; }
+  header .wrap { padding:0; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  h1 { font-family:"Playfair Display",Georgia,serif; font-weight:600; font-size:24px; margin:0; }
+  .sub { opacity:.8; font-size:13px; }
+  main { padding:24px 0 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,.04); }
+  .login { max-width:420px; margin:40px auto; }
+  label { display:block; font-size:13px; font-weight:600; color:var(--muted); margin:12px 0 6px; }
+  input { width:100%; padding:12px; border-radius:12px; border:1px solid var(--line); font:15px Inter,system-ui; background:var(--cream); color:var(--ink); }
+  .btn { appearance:none; border:0; cursor:pointer; font:600 14px Inter,system-ui; padding:11px 16px; border-radius:12px; background:var(--burgundy); color:var(--gold); }
+  .btn.ghost { background:rgba(201,168,76,.16); color:var(--ink); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .error { color:var(--red); font-size:13px; margin-top:10px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .clients { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+  .client { cursor:pointer; transition:transform .12s; }
+  .client:hover { transform:translateY(-2px); }
+  .client h3 { margin:0 0 4px; font-family:"Playfair Display",Georgia,serif; font-size:18px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+  .kpi .label { font-size:12px; color:var(--muted); }
+  .kpi .value { font-size:24px; font-weight:700; margin-top:4px; }
+  h2 { font-family:"Playfair Display",Georgia,serif; font-style:italic; font-weight:500; font-size:21px; margin:24px 0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); background:var(--burgundy); padding:9px 10px; }
+  th:first-child { border-radius:8px 0 0 8px; } th:last-child { border-radius:0 8px 8px 0; }
+  td { padding:9px 10px; border-bottom:1px solid var(--line); }
+  td.num { text-align:right; white-space:nowrap; font-weight:600; }
+  .badge { display:inline-block; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; background:rgba(201,168,76,.18); }
+  .badge.ok { background:rgba(46,139,87,.15); color:var(--green); } .badge.late { background:rgba(192,57,43,.12); color:var(--red); }
+  .row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .scroll { overflow-x:auto; }
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:20px 16px 40px; }
+</style>
+</head>
+<body>
+<header><div class="wrap"><div><h1>Espace conseiller</h1><div class="sub">Londora Pro · consultation en lecture seule</div></div>
+<button class="btn ghost" id="logout" hidden>Se déconnecter</button></div></header>
+<main class="wrap" id="app"></main>
+<footer>Les consultations sont enregistrées et visibles par le client. Aucune donnée ne peut être modifiée ni exportée depuis cet espace.</footer>
+
+<script>
+  // ⚠️ Mêmes valeurs que LondoraPro/Utilities/SupabaseConfig.swift.
+  const SUPABASE_URL = "https://pddevkamxjvnylurqqjo.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_FCJHQem6nVkO13VX6l5qrg_Iv6jv-og";
+
+  const app = document.getElementById("app");
+  const euro = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let token = null;
+  try { token = sessionStorage.getItem("lp_adv_token"); } catch {}
+
+  async function api(path, body, auth = true) {
+    const headers = { "Content-Type": "application/json", apikey: SUPABASE_KEY };
+    if (auth && token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${SUPABASE_URL}${path}`, { method: "POST", headers, body: JSON.stringify(body || {}) });
+    if (res.status === 401 && auth) { signOut(); throw new Error("expired"); }
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!res.ok) throw new Error((data && (data.msg || data.message || data.error_description)) || `HTTP ${res.status}`);
+    return data;
+  }
+  const rpc = (name, body) => api(`/rest/v1/rpc/${name}`, body);
+
+  function signOut() {
+    token = null;
+    try { sessionStorage.removeItem("lp_adv_token"); } catch {}
+    document.getElementById("logout").hidden = true;
+    renderLogin();
+  }
+  document.getElementById("logout").addEventListener("click", signOut);
+
+  // ───── Connexion par code e-mail ─────
+  function renderLogin(step = "email", email = "") {
+    app.innerHTML = `<div class="card login">
+      <h2 style="margin-top:0">Connexion</h2>
+      ${step === "email" ? `
+        <p class="muted">Saisissez l'adresse e-mail de votre compte conseiller : un code de connexion vous est envoyé.</p>
+        <label for="email">Adresse e-mail</label><input id="email" type="email" autocomplete="email" value="${esc(email)}">
+        <div style="margin-top:14px"><button class="btn" id="send">Recevoir le code</button></div>` : `
+        <p class="muted">Code envoyé à ${esc(email)}.</p>
+        <label for="code">Code reçu par e-mail</label><input id="code" inputmode="numeric" autocomplete="one-time-code">
+        <div class="row" style="margin-top:14px"><button class="btn" id="verify">Se connecter</button><button class="btn ghost" id="back">Changer d'adresse</button></div>`}
+      <div class="error" id="err"></div></div>`;
+    const err = (m) => document.getElementById("err").textContent = m;
+    if (step === "email") {
+      document.getElementById("send").onclick = async () => {
+        const value = document.getElementById("email").value.trim();
+        if (!value) return;
+        try { await api("/auth/v1/otp", { email: value, create_user: true }, false); renderLogin("code", value); }
+        catch (e) { err("Envoi impossible : vérifiez l'adresse et réessayez."); }
+      };
+    } else {
+      document.getElementById("back").onclick = () => renderLogin("email", email);
+      document.getElementById("verify").onclick = async () => {
+        const code = document.getElementById("code").value.trim();
+        try {
+          const session = await api("/auth/v1/verify", { type: "email", email, token: code }, false);
+          token = session.access_token;
+          try { sessionStorage.setItem("lp_adv_token", token); } catch {}
+          start();
+        } catch (e) { err("Code incorrect ou expiré."); }
+      };
+    }
+  }
+
+  // ───── Liste des clients ─────
+  async function start() {
+    document.getElementById("logout").hidden = false;
+    app.innerHTML = `<p class="muted">Chargement…</p>`;
+    try {
+      const allowed = await rpc("is_advisor");
+      if (!allowed) {
+        app.innerHTML = `<div class="card"><h2 style="margin-top:0">Compte non activé</h2><p class="muted">Votre compte n'est pas encore déclaré comme conseiller. Contactez l'équipe Londora (support@londora.fr) en indiquant l'adresse e-mail utilisée.</p></div>`;
+        return;
+      }
+      const clients = await rpc("advisor_clients");
+      if (!clients.length) {
+        app.innerHTML = `<div class="card"><h2 style="margin-top:0">Aucun client pour l'instant</h2><p class="muted">Un client apparaît ici dès qu'il vous autorise à consulter ses données depuis son application (Compte → Abonnements → Accès de mon conseiller).</p></div>`;
+        return;
+      }
+      app.innerHTML = `<h2 style="margin-top:0">Vos clients (${clients.length})</h2><div class="clients">${clients.map((c) => `
+        <div class="card client" data-id="${esc(c.client_id)}">
+          <h3>${esc(c.business_name || c.first_name || "Client")}</h3>
+          <div class="muted">${esc(c.first_name)}</div>
+          <div class="muted" style="margin-top:8px">Accès jusqu'au ${fmtDate(c.consent_until)}</div>
+          <div class="muted">Données du ${fmtDate(c.backup_updated_at)}</div>
+        </div>`).join("")}</div>`;
+      app.querySelectorAll(".client").forEach((el) => el.addEventListener("click", () => openClient(el.dataset.id)));
+    } catch (e) {
+      if (e.message !== "expired") app.innerHTML = `<div class="card error">Impossible de charger vos clients pour le moment.</div>`;
+    }
+  }
+
+  // ───── Tableau de bord d'un client ─────
+  function invoiceTotal(inv) {
+    const lines = inv.items || [];
+    const gross = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
+    const net = inv.discountPerItem ? lines.reduce((s, l) => s + l.quantity * l.unitPrice * (1 - (l.discountPercent || 0) / 100), 0)
+                                    : gross * (1 - (inv.discountPercent || 0) / 100);
+    return inv.taxExempt ? net : net * (1 + (inv.taxRatePercent || 0) / 100);
+  }
+  const sameMonth = (d, ref) => { const x = new Date(d); return x.getFullYear() === ref.getFullYear() && x.getMonth() === ref.getMonth(); };
+
+  async function openClient(id) {
+    app.innerHTML = `<p class="muted">Chargement…</p>`;
+    try {
+      const data = await rpc("advisor_client_snapshot", { p_client: id });
+      if (data.error) { app.innerHTML = `<div class="card">Ce client n'a pas encore de sauvegarde de ses données.</div>`; return; }
+      const p = data.payload, now = new Date();
+      const revenues = p.revenues || [], expenses = p.expenses || [], invoices = p.invoices || [], devis = p.devis || [];
+      const ca = revenues.filter((r) => r.isSale && r.statusRaw === "paid" && sameMonth(r.date, now)).reduce((s, r) => s + r.amount, 0);
+      const other = revenues.filter((r) => !r.isSale && sameMonth(r.date, now)).reduce((s, r) => s + r.amount, 0);
+      const charges = expenses.filter((e) => sameMonth(e.date, now)).reduce((s, e) => s + e.amount, 0);
+      const unpaid = invoices.filter((i) => (i.kindRaw || "facture") === "facture" && i.statusRaw === "emise");
+      const unpaidTotal = unpaid.reduce((s, i) => s + invoiceTotal(i), 0);
+      const pendingQuotes = devis.filter((d) => d.statusRaw === "envoye" || d.statusRaw === "brouillon");
+      const tx = [...revenues.map((r) => ({ d: r.date, l: r.label, a: r.amount, t: r.isSale ? "Vente" : "Autre revenu", s: r.statusRaw })),
+                  ...expenses.map((e) => ({ d: e.date, l: e.label, a: -e.amount, t: "Charge", s: "paid" }))]
+                 .sort((a, b) => new Date(b.d) - new Date(a.d)).slice(0, 40);
+      const status = { paid: ["Payé", "ok"], pending: ["En attente", ""], unpaid: ["Pas payé", "late"] };
+      app.innerHTML = `
+        <div class="row"><button class="btn ghost" id="backList">← Tous les clients</button><span class="muted">Données du ${fmtDate(data.updated_at)} · consultation enregistrée</span></div>
+        <h2>${esc(p.profile?.businessName || p.profile?.firstName || "Client")}</h2>
+        <div class="kpis">
+          <div class="card kpi"><div class="label">Chiffre d'affaires du mois</div><div class="value">${euro.format(ca)}</div></div>
+          <div class="card kpi"><div class="label">Charges du mois</div><div class="value">${euro.format(charges)}</div></div>
+          <div class="card kpi"><div class="label">Bénéfice du mois</div><div class="value">${euro.format(ca + other - charges)}</div></div>
+          <div class="card kpi"><div class="label">Factures impayées</div><div class="value">${unpaid.length} · ${euro.format(unpaidTotal)}</div></div>
+        </div>
+        <h2>Factures impayées</h2>
+        <div class="card scroll">${unpaid.length ? `<table><tr><th>N°</th><th>Client</th><th>Échéance</th><th style="text-align:right">Montant</th></tr>
+          ${unpaid.map((i) => `<tr><td>${esc(i.number)}</td><td>${esc(i.beneficiaryName)}</td><td>${fmtDate(i.dueDate)} ${new Date(i.dueDate) < now ? '<span class="badge late">En retard</span>' : ""}</td><td class="num">${euro.format(invoiceTotal(i))}</td></tr>`).join("")}</table>` : `<span class="muted">Aucune facture impayée.</span>`}</div>
+        <h2>Devis en attente</h2>
+        <div class="card scroll">${pendingQuotes.length ? `<table><tr><th>N°</th><th>Client</th><th>Date</th><th style="text-align:right">Montant</th></tr>
+          ${pendingQuotes.map((d) => `<tr><td>${esc(d.number)}</td><td>${esc(d.beneficiaryName)}</td><td>${fmtDate(d.issueDate)}</td><td class="num">${euro.format(invoiceTotal(d))}</td></tr>`).join("")}</table>` : `<span class="muted">Aucun devis en attente.</span>`}</div>
+        <h2>Dernières opérations</h2>
+        <div class="card scroll"><table><tr><th>Date</th><th>Libellé</th><th>Type</th><th>Statut</th><th style="text-align:right">Montant</th></tr>
+          ${tx.map((t) => `<tr><td>${fmtDate(t.d)}</td><td>${esc(t.l)}</td><td>${t.t}</td><td><span class="badge ${(status[t.s] || ["", ""])[1]}">${(status[t.s] || [t.s])[0]}</span></td><td class="num" style="color:${t.a < 0 ? "var(--red)" : "inherit"}">${euro.format(t.a)}</td></tr>`).join("")}</table></div>`;
+      document.getElementById("backList").onclick = start;
+    } catch (e) {
+      if (e.message !== "expired") app.innerHTML = `<div class="card error">Accès refusé : l'autorisation du client a peut-être expiré.</div><button class="btn ghost" onclick="start()">← Retour</button>`;
+    }
+  }
+
+  token ? start() : renderLogin();
+</script>
+</body>
+</html>
