@@ -56,3 +56,5 @@ footer { text-align:center; color:var(--muted); font-size:12px; padding:20px 16p
 .switch input { flex:1; min-width:0; }
 .recent { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
 input.code::placeholder { font:500 14px Inter,system-ui; letter-spacing:0; text-transform:none; }
+.inbox-row { padding:10px 0; border-top:1px solid var(--line); flex-wrap:nowrap; }
+.inbox-row:first-of-type { border-top:0; }

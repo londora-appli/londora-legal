@@ -230,10 +230,34 @@
       <div class="mt14"><button class="btn" id="open">Ouvrir le dossier</button></div>
       <div class="error" id="err">${esc(message)}</div>
       ${trust ? `<p class="muted small">Navigateur de confiance jusqu'au ${fmtDateTime(trust.until)}. « Se déconnecter » retire cette confiance.</p>` : ""}</div>
-      ${notice ? `<div class="banner narrow">${esc(notice)}</div>` : ""}`;
+      ${notice ? `<div class="banner narrow">${esc(notice)}</div>` : ""}
+      <div class="narrow" id="inbox"></div>`;
     pendingCode = "";
     bindEnter("code", "open");
     $("open").onclick = () => openDossier($("code").value, "code", "open", "err");
+    renderInbox("inbox", "code", "open", "err", true);
+  }
+
+  // « Dossiers reçus » : dossiers passés par un collègue, ouverts sans saisir de code.
+  async function renderInbox(containerId, inputId, buttonId, errId, asCard) {
+    let list = [];
+    try { list = await rpc("support_inbox"); } catch { return; }
+    const box = $(containerId);
+    if (!box || !Array.isArray(list) || !list.length) return;
+    box.innerHTML = `<div class="${asCard ? "card" : "recent"}">
+      ${asCard ? `<h2 class="mt0">Dossiers reçus</h2>` : `<span class="muted">Dossiers reçus :</span>`}
+      ${list.map((d) => asCard
+        ? `<div class="row inbox-row"><div><strong>${esc(d.name)}</strong><div class="muted">Transmis par ${esc(d.from_name)} · ${fmtDateTime(d.received_at)} · accès jusqu'au ${fmtDateTime(d.expires_at)}</div></div><button class="btn" data-grant="${esc(d.grant_id)}">Ouvrir</button></div>`
+        : `<button class="tab" data-grant="${esc(d.grant_id)}">${esc(d.name)} · de ${esc(d.from_name)}</button>`).join("")}
+    </div>`;
+    box.querySelectorAll("[data-grant]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      try {
+        const res = await rpc("support_take_handover", { p_grant: b.dataset.grant });
+        if (res.error) { $(errId).textContent = "Ce dossier n'est plus disponible (révoqué ou expiré)."; b.remove(); return; }
+        openDossier(res.code, inputId, buttonId, errId);
+      } catch (e) { if (e.message !== "expired") { $(errId).textContent = "Ouverture impossible pour le moment."; b.disabled = false; } }
+    }));
   }
 
   // Ouvre un dossier (depuis l'accueil ou directement depuis un autre dossier).
@@ -311,6 +335,7 @@
           <button class="btn" id="open2">Ouvrir</button>
         </div>
         ${recent.length > 1 ? `<div class="recent"><span class="muted">Ouverts récemment :</span> ${recent.map((r, i) => `<button class="tab ${r.code === dossierCode ? "on" : ""}" data-recent="${i}">${esc(r.name)}</button>`).join("")}</div>` : ""}
+        <div id="inbox2"></div>
         <div class="error" id="err2"></div>
       </div>
       <div id="transferBox"></div>
@@ -320,6 +345,7 @@
     $("transfer").onclick = openTransfer;
     $("open2").onclick = () => openDossier($("code2").value, "code2", "open2", "err2");
     bindEnter("code2", "open2");
+    renderInbox("inbox2", "code2", "open2", "err2", false);
     app.querySelectorAll("[data-recent]").forEach((b) => b.addEventListener("click", () => {
       const r = recent[Number(b.dataset.recent)];
       if (r && r.code !== dossierCode) openDossier(r.code, "code2", "open2", "err2");
@@ -338,7 +364,7 @@
     box.innerHTML = `<div class="card">
       <label for="colleague" class="mt0">Passer ce dossier à</label>
       <select id="colleague">${colleagues.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("")}</select>
-      <p class="muted">Vous ne pourrez plus l'ouvrir ; votre collègue l'ouvrira avec le même code (donnez-le-lui). L'utilisateur en est informé dans son historique.</p>
+      <p class="muted">Vous ne pourrez plus l'ouvrir. Votre collègue le retrouvera dans « Dossiers reçus », sans saisir de code. L'utilisateur en est informé dans son historique.</p>
       <div class="row"><button class="btn" id="doTransfer">Confirmer</button><button class="btn ghost" id="cancelTransfer">Annuler</button></div>
       <div class="error" id="transferErr"></div></div>`;
     $("cancelTransfer").onclick = () => { box.innerHTML = ""; };
@@ -354,7 +380,7 @@
         }
         const code = dossierCode;
         recent = recent.filter((r) => r.code !== code);
-        home("", `Dossier passé à ${res.to_name}. Donnez-lui le code ${code} pour qu'il l'ouvre.`);
+        home("", `Dossier passé à ${res.to_name} : il le retrouve dans « Dossiers reçus ».`);
       } catch (e) { if (e.message !== "expired") { $("transferErr").textContent = "Opération impossible pour le moment."; $("doTransfer").disabled = false; } }
     };
   }
