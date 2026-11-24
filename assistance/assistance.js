@@ -28,6 +28,7 @@
   let email = "";
   let dossier = null;
   let dossierCode = ""; // gardé en mémoire le temps du dossier (pour le passer à un collègue)
+  let recent = [];      // dossiers ouverts pendant cette session (mémoire seulement)
   let idleTimer = null;
 
   // Code reçu par lien (#code=…) : lu puis retiré aussitôt de la barre d'adresse.
@@ -100,7 +101,7 @@
     // Révoque la session côté serveur (cet appareil seulement) et retire la confiance.
     if (token) api("/auth/v1/logout?scope=local", { body: {}, retried: true }).catch(() => {});
     clearTrust();
-    token = null; refreshToken = null; dossier = null; dossierCode = ""; email = "";
+    token = null; refreshToken = null; dossier = null; dossierCode = ""; recent = []; email = "";
     clearTimeout(idleTimer);
     $("logout").hidden = true;
     $("who").textContent = "";
@@ -232,29 +233,37 @@
       ${notice ? `<div class="banner narrow">${esc(notice)}</div>` : ""}`;
     pendingCode = "";
     bindEnter("code", "open");
-    $("open").onclick = async () => {
-      const code = $("code").value.trim();
-      if (!code) return;
-      $("open").disabled = true;
-      try {
-        const res = await rpc("support_open_dossier", { p_code: code });
-        $("code").value = "";
-        if (res.error) {
-          const msg = {
-            invalid_code: "Code invalide, expiré, révoqué ou déjà ouvert par un autre membre de l'équipe.",
-            too_many_attempts: "Trop de codes incorrects : réessayez dans une heure.",
-            not_agent: "Accès refusé : reconnectez-vous avec la double authentification.",
-          }[res.error] || "Ouverture impossible.";
-          $("err").textContent = msg; $("open").disabled = false;
-          return;
-        }
-        dossier = res;
-        dossierCode = code;
-        renderDossier("summary");
-      } catch (e) {
-        if (e.message !== "expired") { $("err").textContent = "Ouverture impossible pour le moment."; $("open").disabled = false; }
+    $("open").onclick = () => openDossier($("code").value, "code", "open", "err");
+  }
+
+  // Ouvre un dossier (depuis l'accueil ou directement depuis un autre dossier).
+  // Chaque ouverture repasse par le serveur : elle est comptée, journalisée,
+  // et refusée si l'utilisateur a révoqué son code entre-temps.
+  async function openDossier(rawCode, inputId, buttonId, errId) {
+    const code = String(rawCode || "").trim();
+    if (!code) return;
+    $(buttonId).disabled = true;
+    try {
+      const res = await rpc("support_open_dossier", { p_code: code });
+      if ($(inputId)) $(inputId).value = "";
+      if (res.error) {
+        const msg = {
+          invalid_code: "Code invalide, expiré, révoqué ou déjà ouvert par un autre membre de l'équipe.",
+          too_many_attempts: "Trop de codes incorrects : réessayez dans une heure.",
+          not_agent: "Accès refusé : reconnectez-vous avec la double authentification.",
+        }[res.error] || "Ouverture impossible.";
+        $(errId).textContent = msg; $(buttonId).disabled = false;
+        if (res.error === "invalid_code") recent = recent.filter((r) => r.code !== code);
+        return;
       }
-    };
+      dossier = res;
+      dossierCode = code;
+      const name = res.payload?.data?.profile?.businessName || res.payload?.data?.profile?.firstName || "Dossier";
+      recent = [{ code, name }, ...recent.filter((r) => r.code !== code)].slice(0, 8);
+      renderDossier("summary");
+    } catch (e) {
+      if (e.message !== "expired" && $(errId)) { $(errId).textContent = "Ouverture impossible pour le moment."; $(buttonId).disabled = false; }
+    }
   }
 
   // ───── 5. Dossier (lecture seule) ─────
@@ -296,11 +305,25 @@
       <h2>${esc(title)}</h2>
       <div class="banner">${dossier.scope === "full" ? "L'utilisateur a partagé le diagnostic et ses données de gestion." : "L'utilisateur n'a partagé que le diagnostic (aucune donnée de gestion)."}
         Lecture seule · consultation enregistrée et visible par l'utilisateur. Justificatifs, logo, photos, signatures, IBAN et liens de l'espace client ne sont jamais transmis ; e-mails et téléphones des clients masqués.</div>
+      <div class="card switch">
+        <div class="row">
+          <input id="code2" class="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="Code d'un autre dossier">
+          <button class="btn" id="open2">Ouvrir</button>
+        </div>
+        ${recent.length > 1 ? `<div class="recent"><span class="muted">Ouverts récemment :</span> ${recent.map((r, i) => `<button class="tab ${r.code === dossierCode ? "on" : ""}" data-recent="${i}">${esc(r.name)}</button>`).join("")}</div>` : ""}
+        <div class="error" id="err2"></div>
+      </div>
       <div id="transferBox"></div>
       <div class="tabs">${tabs.map(([id, l]) => `<button class="tab ${id === tab ? "on" : ""}" data-tab="${id}">${esc(l)}</button>`).join("")}</div>
       <div id="content"></div>`;
     $("close").onclick = () => home();
     $("transfer").onclick = openTransfer;
+    $("open2").onclick = () => openDossier($("code2").value, "code2", "open2", "err2");
+    bindEnter("code2", "open2");
+    app.querySelectorAll("[data-recent]").forEach((b) => b.addEventListener("click", () => {
+      const r = recent[Number(b.dataset.recent)];
+      if (r && r.code !== dossierCode) openDossier(r.code, "code2", "open2", "err2");
+    }));
     app.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => renderDossier(b.dataset.tab)));
     $("content").innerHTML = (VIEWS[tab] || VIEWS.diag)(data, diag);
   }
@@ -330,6 +353,7 @@
           return;
         }
         const code = dossierCode;
+        recent = recent.filter((r) => r.code !== code);
         home("", `Dossier passé à ${res.to_name}. Donnez-lui le code ${code} pour qu'il l'ouvre.`);
       } catch (e) { if (e.message !== "expired") { $("transferErr").textContent = "Opération impossible pour le moment."; $("doTransfer").disabled = false; } }
     };
