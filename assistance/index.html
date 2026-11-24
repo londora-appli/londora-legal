@@ -16,7 +16,8 @@
   Lecture seule d'un dossier UNIQUEMENT avec le code d'accès que
   l'utilisateur a créé dans l'app (supabase/support_access.sql).
   Aucune clé secrète ici : seule la clé publique (publishable) est utilisée.
-  La session n'est gardée qu'en mémoire (rien dans le navigateur).
+  La session est gardée en mémoire ; « Faire confiance à ce navigateur » (case
+  à cocher, 7 jours non prolongés) conserve seulement le jeton de renouvellement.
 -->
 </head>
 <body>
@@ -25,7 +26,7 @@
   <div class="head-actions"><span id="who" class="who"></span><button class="btn ghost" id="logout" hidden>Se déconnecter</button></div>
 </div></header>
 <main class="wrap" id="app"><p class="muted">Chargement…</p></main>
-<footer>Accès réservé à l'équipe d'assistance Londora. Chaque consultation est enregistrée et visible par l'utilisateur. Déconnexion automatique après 15 minutes d'inactivité.</footer>
+<footer>Accès réservé à l'équipe d'assistance Londora. Chaque consultation est enregistrée et visible par l'utilisateur. Déconnexion automatique après 15 minutes d'inactivité, sauf sur un navigateur de confiance.</footer>
 <script src="assistance.js"></script>
 </body>
 </html>

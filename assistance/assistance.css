@@ -24,6 +24,9 @@ input.code { font:600 20px ui-monospace,SFMono-Regular,Menlo,monospace; letter-s
 .btn:disabled { opacity:.45; cursor:default; }
 .error { color:var(--red); font-size:13px; margin-top:10px; min-height:1em; }
 .muted { color:var(--muted); font-size:13px; }
+.small { font-size:12px; margin:6px 0 0; }
+label.check { display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink); margin-top:14px; cursor:pointer; }
+label.check input { width:auto; margin:0; accent-color:var(--burgundy); }
 .mt0 { margin-top:0; } .mt14 { margin-top:14px; }
 .row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
 .qr { display:block; width:200px; height:200px; margin:12px auto; background:#fff; border-radius:12px; padding:8px; }

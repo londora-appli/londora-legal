@@ -5,6 +5,8 @@
   const SUPABASE_URL = "https://pddevkamxjvnylurqqjo.supabase.co";
   const SUPABASE_KEY = "sb_publishable_FCJHQem6nVkO13VX6l5qrg_Iv6jv-og";
   const IDLE_MS = 15 * 60 * 1000;
+  const TRUST_KEY = "lp_assist_trust";
+  const TRUST_MS = 7 * 24 * 60 * 60 * 1000; // « Faire confiance à ce navigateur » : 7 jours
 
   // Pas d'affichage dans un cadre d'un autre site (anti-clickjacking).
   if (window.top !== window.self) { document.body.textContent = ""; return; }
@@ -17,8 +19,12 @@
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
   const fmtDateTime = (d) => d ? new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
-  // Session gardée UNIQUEMENT en mémoire : fermer ou recharger l'onglet déconnecte.
+  // Session gardée en mémoire. Seulement si l'agent coche « Faire confiance à
+  // ce navigateur », le jeton de renouvellement est conservé (7 jours maximum,
+  // non prolongés) pour éviter de refaire code e-mail + double authentification.
   let token = null;
+  let refreshToken = null;
+  let trust = null; // { until, email } quand le navigateur est de confiance
   let email = "";
   let dossier = null;
   let dossierCode = ""; // gardé en mémoire le temps du dossier (pour le passer à un collègue)
@@ -33,7 +39,7 @@
   }
 
   // ───── Réseau ─────
-  async function api(path, { method = "POST", body, auth = true } = {}) {
+  async function api(path, { method = "POST", body, auth = true, retried = false } = {}) {
     const headers = { apikey: SUPABASE_KEY };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (auth && token) headers.Authorization = `Bearer ${token}`;
@@ -41,7 +47,10 @@
       method, headers, body: body !== undefined ? JSON.stringify(body) : undefined,
       credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
     });
-    if (res.status === 401 && auth && token) { signOut("Session expirée : reconnectez-vous."); throw new Error("expired"); }
+    if (res.status === 401 && auth && token) {
+      if (!retried && await renewSession()) return api(path, { method, body, auth, retried: true });
+      signOut("Session expirée : reconnectez-vous."); throw new Error("expired");
+    }
     const text = await res.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = null; }
@@ -50,10 +59,48 @@
   }
   const rpc = (name, body = {}) => api(`/rest/v1/rpc/${name}`, { body });
 
+  // ───── Navigateur de confiance ─────
+  function readTrust() {
+    try {
+      const t = JSON.parse(localStorage.getItem(TRUST_KEY) || "null");
+      if (t && t.rt && t.until > Date.now()) return t;
+    } catch {}
+    clearTrust();
+    return null;
+  }
+  function saveTrust() {
+    if (!trust || !refreshToken) return;
+    try { localStorage.setItem(TRUST_KEY, JSON.stringify({ rt: refreshToken, until: trust.until, email: trust.email })); } catch {}
+  }
+  function clearTrust() {
+    trust = null;
+    try { localStorage.removeItem(TRUST_KEY); } catch {}
+  }
+  function adoptSession(session) {
+    token = session.access_token;
+    refreshToken = session.refresh_token || refreshToken;
+    saveTrust();
+  }
+  // Renouvelle le jeton d'accès (valable 1 h) sans refaire la connexion.
+  async function renewSession() {
+    if (!refreshToken) return false;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: "POST", headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }), credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer",
+      });
+      if (!res.ok) return false;
+      adoptSession(await res.json());
+      return true;
+    } catch { return false; }
+  }
+
   // ───── Déconnexion & inactivité ─────
   function signOut(message = "") {
-    if (token) api("/auth/v1/logout", { body: {} }).catch(() => {});
-    token = null; dossier = null; dossierCode = ""; email = "";
+    // Révoque la session côté serveur (cet appareil seulement) et retire la confiance.
+    if (token) api("/auth/v1/logout?scope=local", { body: {}, retried: true }).catch(() => {});
+    clearTrust();
+    token = null; refreshToken = null; dossier = null; dossierCode = ""; email = "";
     clearTimeout(idleTimer);
     $("logout").hidden = true;
     $("who").textContent = "";
@@ -61,7 +108,7 @@
   }
   $("logout").addEventListener("click", () => signOut());
   function touch() {
-    if (!token) return;
+    if (!token || trust) return; // navigateur de confiance : pas de déconnexion pour inactivité
     clearTimeout(idleTimer);
     idleTimer = setTimeout(() => signOut("Déconnecté après 15 minutes d'inactivité."), IDLE_MS);
   }
@@ -104,7 +151,7 @@
       $("verify").disabled = true;
       try {
         const session = await api("/auth/v1/verify", { body: { type: "email", email, token: code }, auth: false });
-        token = session.access_token;
+        adoptSession(session);
         $("logout").hidden = false;
         touch();
         await secondFactor();
@@ -140,6 +187,8 @@
         <div class="secret" id="secret"></div>` : `
         <p class="muted">Saisissez le code à 6 chiffres affiché par votre application d'authentification.</p>`}
       <label for="totp">Code de l'application</label><input id="totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+      <label class="check"><input type="checkbox" id="trust"> Faire confiance à ce navigateur pendant 7 jours</label>
+      <p class="muted small">À ne cocher que sur votre ordinateur ou téléphone personnel. « Se déconnecter » retire cette confiance.</p>
       <div class="mt14"><button class="btn" id="ok">Valider</button></div>
       <div class="error" id="err"></div></div>`;
     if (enroll) { $("qr").src = qr; $("secret").textContent = enroll.secret || ""; }
@@ -150,8 +199,9 @@
       try {
         const challenge = await api(`/auth/v1/factors/${encodeURIComponent(factorId)}/challenge`, { body: {} });
         const session = await api(`/auth/v1/factors/${encodeURIComponent(factorId)}/verify`, { body: { challenge_id: challenge.id, code } });
-        token = session.access_token;
-        touch();
+        trust = $("trust").checked ? { until: Date.now() + TRUST_MS, email } : null;
+        adoptSession(session);
+        if (!trust) touch(); else clearTimeout(idleTimer);
         await home();
       } catch (e) {
         if (e.message !== "expired") { $("err").textContent = "Code incorrect. Vérifiez l'heure de votre téléphone et réessayez."; $("ok").disabled = false; }
@@ -177,7 +227,8 @@
       <p class="muted">Saisissez le code d'accès transmis par l'utilisateur (format LP-XXXX-XXXX-XXXX). Il n'est valable que peu de temps, l'utilisateur peut le révoquer, et chaque ouverture lui est signalée.</p>
       <label for="code">Code d'accès</label><input id="code" class="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" value="${esc(pendingCode)}">
       <div class="mt14"><button class="btn" id="open">Ouvrir le dossier</button></div>
-      <div class="error" id="err">${esc(message)}</div></div>
+      <div class="error" id="err">${esc(message)}</div>
+      ${trust ? `<p class="muted small">Navigateur de confiance jusqu'au ${fmtDateTime(trust.until)}. « Se déconnecter » retire cette confiance.</p>` : ""}</div>
       ${notice ? `<div class="banner narrow">${esc(notice)}</div>` : ""}`;
     pendingCode = "";
     bindEnter("code", "open");
@@ -369,5 +420,16 @@
     },
   };
 
-  renderEmail();
+  // Démarrage : reprend la session si ce navigateur est de confiance.
+  (async () => {
+    const t = readTrust();
+    if (!t) return renderEmail();
+    trust = { until: t.until, email: t.email || "" };
+    email = trust.email;
+    refreshToken = t.rt;
+    app.innerHTML = `<p class="muted">Reconnexion…</p>`;
+    if (await renewSession()) { $("logout").hidden = false; return home(); }
+    clearTrust(); refreshToken = null;
+    renderEmail("Confiance expirée : reconnectez-vous.");
+  })();
 })();
