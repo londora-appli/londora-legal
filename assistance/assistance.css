@@ -1,0 +1,50 @@
+/* Espace assistance Londora Pro — mêmes couleurs que l'app et l'espace conseiller. */
+:root { --burgundy:#4A1420; --burgundy-dark:#330E16; --gold:#C9A84C; --cream:#F5F1EB; --card:#fff; --ink:#23101A;
+        --muted:#6b5a60; --green:#2E8B57; --red:#C0392B; --line:rgba(74,20,32,.12); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cream:#140508; --card:#260D13; --ink:#F4EBDE; --muted:#c9b8ad; --line:rgba(240,228,210,.14); } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--cream); color:var(--ink); font-family:Inter,-apple-system,system-ui,sans-serif; }
+header { background:linear-gradient(135deg,var(--burgundy),var(--burgundy-dark)); color:var(--gold); padding:22px 16px; }
+.wrap { max-width:1040px; margin:0 auto; padding:0 16px; }
+header .wrap { padding:0; }
+.head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.head-actions { display:flex; align-items:center; gap:10px; }
+.who { font-size:13px; opacity:.85; }
+h1 { font-family:"Playfair Display",Georgia,serif; font-weight:600; font-size:24px; margin:0; }
+.sub { opacity:.8; font-size:13px; }
+main { padding:24px 16px 60px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,.04); }
+.narrow { max-width:440px; margin:32px auto; }
+label.mt0 { margin-top:0; }
+label { display:block; font-size:13px; font-weight:600; color:var(--muted); margin:12px 0 6px; }
+select, input { width:100%; padding:12px; border-radius:12px; border:1px solid var(--line); font:15px Inter,system-ui; background:var(--cream); color:var(--ink); }
+input.code { font:600 20px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.08em; text-transform:uppercase; }
+.btn { appearance:none; border:0; cursor:pointer; font:600 14px Inter,system-ui; padding:11px 16px; border-radius:12px; background:var(--burgundy); color:var(--gold); }
+.btn.ghost { background:rgba(201,168,76,.16); color:inherit; }
+.btn:disabled { opacity:.45; cursor:default; }
+.error { color:var(--red); font-size:13px; margin-top:10px; min-height:1em; }
+.muted { color:var(--muted); font-size:13px; }
+.mt0 { margin-top:0; } .mt14 { margin-top:14px; }
+.row { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.qr { display:block; width:200px; height:200px; margin:12px auto; background:#fff; border-radius:12px; padding:8px; }
+.secret { font:600 14px ui-monospace,Menlo,monospace; word-break:break-all; background:var(--cream); padding:10px; border-radius:10px; }
+h2 { font-family:"Playfair Display",Georgia,serif; font-style:italic; font-weight:500; font-size:21px; margin:24px 0 10px; }
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.kpi .label { font-size:12px; color:var(--muted); }
+.kpi .value { font-size:22px; font-weight:700; margin-top:4px; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th { text-align:left; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); background:var(--burgundy); padding:9px 10px; }
+th:first-child { border-radius:8px 0 0 8px; } th:last-child { border-radius:0 8px 8px 0; }
+td { padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+td.num, th.num { text-align:right; white-space:nowrap; }
+td.num { font-weight:600; }
+td.neg { color:var(--red); }
+.kv td:first-child { color:var(--muted); width:45%; }
+.badge { display:inline-block; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; background:rgba(201,168,76,.18); }
+.badge.ok { background:rgba(46,139,87,.15); color:var(--green); } .badge.late { background:rgba(192,57,43,.12); color:var(--red); }
+.scroll { overflow-x:auto; }
+.tabs { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 6px; }
+.tab { appearance:none; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:8px 14px; font:600 13px Inter,system-ui; cursor:pointer; }
+.tab.on { background:var(--burgundy); color:var(--gold); border-color:transparent; }
+.banner { background:rgba(201,168,76,.14); border:1px solid rgba(201,168,76,.4); border-radius:14px; padding:12px 14px; font-size:13px; margin-bottom:14px; }
+footer { text-align:center; color:var(--muted); font-size:12px; padding:20px 16px 40px; }

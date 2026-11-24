@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://pddevkamxjvnylurqqjo.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Espace assistance — Londora Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assistance.css">
+<!--
+  Espace assistance Londora Pro — publié sur support.londora.fr/assistance/.
+  Connexion : code e-mail (Supabase Auth) + double authentification (TOTP).
+  Lecture seule d'un dossier UNIQUEMENT avec le code d'accès que
+  l'utilisateur a créé dans l'app (supabase/support_access.sql).
+  Aucune clé secrète ici : seule la clé publique (publishable) est utilisée.
+  La session n'est gardée qu'en mémoire (rien dans le navigateur).
+-->
+</head>
+<body>
+<header><div class="wrap head">
+  <div><h1>Espace assistance</h1><div class="sub">Londora Pro · consultation en lecture seule</div></div>
+  <div class="head-actions"><span id="who" class="who"></span><button class="btn ghost" id="logout" hidden>Se déconnecter</button></div>
+</div></header>
+<main class="wrap" id="app"><p class="muted">Chargement…</p></main>
+<footer>Accès réservé à l'équipe d'assistance Londora. Chaque consultation est enregistrée et visible par l'utilisateur. Déconnexion automatique après 15 minutes d'inactivité.</footer>
+<script src="assistance.js"></script>
+</body>
+</html>
